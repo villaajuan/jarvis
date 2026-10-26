@@ -8,5 +8,10 @@
         "concepto": "Honorarios Freelance",
         "monto": 350000.0,
         "tipo": "ingreso"
+    },
+    {
+        "concepto": "cena fin de semana",
+        "monto": 45000.0,
+        "tipo": "gasto"
     }
 ]
