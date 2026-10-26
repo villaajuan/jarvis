@@ -1,0 +1,12 @@
+[
+    {
+        "concepto": "Nequi Pago Servicios",
+        "monto": 65000.0,
+        "tipo": "gasto"
+    },
+    {
+        "concepto": "Honorarios Freelance",
+        "monto": 350000.0,
+        "tipo": "ingreso"
+    }
+]
