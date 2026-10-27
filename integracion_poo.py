@@ -1,17 +1,21 @@
 import json
 from pathlib import Path
+from datetime import datetime  # Nuevo módulo importado
 
 
 class Transaccion:
 
-    def __init__(self, concepto: str, monto: float, tipo: str):
+    def __init__(self, concepto: str, monto: float, tipo: str, fecha: str = None):
         self.concepto = concepto
         self._monto = monto
         self.tipo = tipo
+        # Si no se provee una fecha, el sistema captura el instante exacto actual
+        self.fecha = fecha if fecha else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def obtener_resumen(self) -> str:
         simbolo = "+" if self.tipo == "ingreso" else "-"
-        return f"[{self.tipo.upper()}] {self.concepto}: {simbolo}${self._monto:,.2f}"
+        # Se inyecta la fecha en el resumen visual
+        return f"[{self.fecha}] [{self.tipo.upper()}] {self.concepto}: {simbolo}${self._monto:,.2f}"
 
     def to_dict(self) -> dict:
         """Convierte la instancia en un diccionario para guardar en JSON."""
@@ -19,6 +23,7 @@ class Transaccion:
             "concepto": self.concepto,
             "monto": self._monto,
             "tipo": self.tipo,
+            "fecha": self.fecha  # Se añade el nuevo atributo al guardado
         }
 
     @classmethod
@@ -28,7 +33,11 @@ class Transaccion:
             concepto=datos["concepto"],
             monto=datos["monto"],
             tipo=datos["tipo"],
+            # .get() evita el KeyError si el JSON viejo no tiene el campo "fecha"
+            fecha=datos.get("fecha")
         )
+
+# ... (Mantén tu clase GestorFinanciero y el resto del archivo sin tocar) ...
 
 
 class GestorFinanciero:

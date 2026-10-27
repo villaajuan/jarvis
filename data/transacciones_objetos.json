@@ -2,16 +2,25 @@
     {
         "concepto": "Nequi Pago Servicios",
         "monto": 65000.0,
-        "tipo": "gasto"
+        "tipo": "gasto",
+        "fecha": "2026-10-26 19:18:02"
     },
     {
         "concepto": "Honorarios Freelance",
         "monto": 350000.0,
-        "tipo": "ingreso"
+        "tipo": "ingreso",
+        "fecha": "2026-10-26 19:18:02"
     },
     {
         "concepto": "cena fin de semana",
         "monto": 45000.0,
-        "tipo": "gasto"
+        "tipo": "gasto",
+        "fecha": "2026-10-26 19:18:02"
+    },
+    {
+        "concepto": "Almuerzo",
+        "monto": 18000.0,
+        "tipo": "gasto",
+        "fecha": "2026-10-26 19:19:14"
     }
 ]
