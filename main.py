@@ -1,16 +1,16 @@
 from integracion_poo import Transaccion, GestorFinanciero
+from datetime import datetime
 
 def mostrar_menu() -> str:
     print("\n--- JARVIS: CONTROL FINANCIERO ---")
     print("1. Ver transacciones")
     print("2. Registrar nueva transacción")
-    print("3. Salir")
-    return input("Selecciona una opción (1/2/3): ")
+    print("3. Generar reporte mensual")
+    print("4. Salir")
+    return input("Selecciona una opción (1/2/3/4): ")
 
 def ejecutar_consola():
-    # Inicializa la base de datos
     gestor = GestorFinanciero()
-    # Carga el historial previo
     transacciones = gestor.cargar_objetos()
 
     while True:
@@ -43,6 +43,34 @@ def ejecutar_consola():
                 print("[ERROR] El monto debe ser un valor numérico válido.")
 
         elif opcion == "3":
+            print("\n--- REPORTE MENSUAL ---")
+            # Captura el mes actual por defecto (ej. 2026-10)
+            mes_actual = datetime.now().strftime("%Y-%m")
+            mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
+            
+            # Si el usuario solo presiona Enter, usa el mes actual
+            if not mes_filtro:
+                mes_filtro = mes_actual
+            
+            ingresos = 0.0
+            gastos = 0.0
+            
+            # Procesamiento de datos (El motor analítico)
+            for t in transacciones:
+                # Comprueba que la fecha exista y coincida con el mes solicitado
+                if t.fecha and t.fecha.startswith(mes_filtro):
+                    if t.tipo == "ingreso":
+                        ingresos += t._monto
+                    else:
+                        gastos += t._monto
+            
+            balance = ingresos - gastos
+            print(f"\nResumen Financiero de {mes_filtro}:")
+            print(f"Total Ingresos: +${ingresos:,.2f}")
+            print(f"Total Gastos:   -${gastos:,.2f}")
+            print(f"BALANCE NETO:   ${balance:,.2f}")
+
+        elif opcion == "4":
             print("Cerrando Jarvis. Sistema fuera de línea.")
             break
             
