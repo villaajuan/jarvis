@@ -2,7 +2,7 @@ from integracion_poo import Transaccion, GestorFinanciero
 from datetime import datetime
 
 def mostrar_menu() -> str:
-    print("\n--- JARVIS: CONTROL FINANCIERO ---")
+    print("\n--- JARVIS: CONTROL FINANCIERO (SQLITE) ---")
     print("1. Ver transacciones")
     print("2. Registrar nueva transacción")
     print("3. Generar reporte mensual")
@@ -11,12 +11,12 @@ def mostrar_menu() -> str:
 
 def ejecutar_consola():
     gestor = GestorFinanciero()
-    transacciones = gestor.cargar_objetos()
 
     while True:
         opcion = mostrar_menu()
 
         if opcion == "1":
+            transacciones = gestor.cargar_objetos()
             if not transacciones:
                 print("\n[INFO] El registro está vacío.")
             else:
@@ -36,9 +36,9 @@ def ejecutar_consola():
                     continue
 
                 nueva_t = Transaccion(concepto, monto, tipo)
-                transacciones.append(nueva_t)
-                gestor.guardar_objetos(transacciones)
-                print("[OK] Registro guardado en disco.")
+                # Inserción unitaria directa a la base de datos SQL
+                if gestor.registrar_transaccion(nueva_t):
+                    print("[OK] Registro insertado exitosamente en SQLite.")
             except ValueError:
                 print("[ERROR] El monto debe ser un valor numérico válido.")
 
@@ -49,7 +49,6 @@ def ejecutar_consola():
             if not mes_filtro:
                 mes_filtro = mes_actual
             
-            # Python ya no usa bucles 'for' ni 'if'. Solo recibe los dos totales desde SQLite.
             ingresos, gastos = gestor.calcular_balance(mes_filtro)
             balance = ingresos - gastos
             
