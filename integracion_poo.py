@@ -47,3 +47,33 @@ class GestorFinanciero:
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al leer de BD: {e}")
             return []
+    
+    def calcular_balance(self, mes_filtro: str) -> tuple[float, float]:
+        """Delega el cálculo matemático (sumas) al motor de la base de datos."""
+        try:
+            conexion = sqlite3.connect(self.ruta)
+            cursor = conexion.cursor()
+            
+            # 1. Suma todos los ingresos del mes directamente en SQL
+            cursor.execute('''
+                SELECT SUM(monto) FROM transacciones 
+                WHERE tipo = 'ingreso' AND fecha LIKE ?
+            ''', (f"{mes_filtro}%",))
+            
+            # fetchone() trae el primer registro. [0] extrae el número. 'or 0.0' evita errores si no hay datos.
+            ingresos = cursor.fetchone()[0] or 0.0
+
+            # 2. Suma todos los gastos del mes
+            cursor.execute('''
+                SELECT SUM(monto) FROM transacciones 
+                WHERE tipo = 'gasto' AND fecha LIKE ?
+            ''', (f"{mes_filtro}%",))
+            
+            gastos = cursor.fetchone()[0] or 0.0
+
+            conexion.close()
+            return ingresos, gastos
+            
+        except sqlite3.Error as e:
+            print(f"[ERROR] Falla al calcular en BD: {e}")
+            return 0.0, 0.0

@@ -43,29 +43,17 @@ def ejecutar_consola():
                 print("[ERROR] El monto debe ser un valor numérico válido.")
 
         elif opcion == "3":
-            print("\n--- REPORTE MENSUAL ---")
-            # Captura el mes actual por defecto (ej. 2026-10)
             mes_actual = datetime.now().strftime("%Y-%m")
             mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
             
-            # Si el usuario solo presiona Enter, usa el mes actual
             if not mes_filtro:
                 mes_filtro = mes_actual
             
-            ingresos = 0.0
-            gastos = 0.0
-            
-            # Procesamiento de datos (El motor analítico)
-            for t in transacciones:
-                # Comprueba que la fecha exista y coincida con el mes solicitado
-                if t.fecha and t.fecha.startswith(mes_filtro):
-                    if t.tipo == "ingreso":
-                        ingresos += t._monto
-                    else:
-                        gastos += t._monto
-            
+            # Python ya no usa bucles 'for' ni 'if'. Solo recibe los dos totales desde SQLite.
+            ingresos, gastos = gestor.calcular_balance(mes_filtro)
             balance = ingresos - gastos
-            print(f"\nResumen Financiero de {mes_filtro}:")
+            
+            print(f"\n--- REPORTE FINANCIERO DE {mes_filtro} ---")
             print(f"Total Ingresos: +${ingresos:,.2f}")
             print(f"Total Gastos:   -${gastos:,.2f}")
             print(f"BALANCE NETO:   ${balance:,.2f}")
