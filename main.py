@@ -6,8 +6,9 @@ def mostrar_menu() -> str:
     print("1. Ver transacciones")
     print("2. Registrar nueva transacción")
     print("3. Generar reporte mensual")
-    print("4. Salir")
-    return input("Selecciona una opción (1/2/3/4): ")
+    print("4. Analizar gastos por categoría")
+    print("5. Salir")
+    return input("Selecciona una opción (1/2/3/4/5): ")
 
 def ejecutar_consola():
     gestor = GestorFinanciero()
@@ -71,6 +72,22 @@ def ejecutar_consola():
             print(f"BALANCE NETO:   ${balance:,.2f}")
 
         elif opcion == "4":
+            mes_actual = datetime.now().strftime("%Y-%m")
+            mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
+            
+            if not mes_filtro:
+                mes_filtro = mes_actual
+                
+            print(f"\n--- ANÁLISIS DE GASTOS: {mes_filtro} ---")
+            categorias = gestor.analizar_categorias(mes_filtro, 'gasto')
+            
+            if not categorias:
+                print("No hay gastos registrados para analizar en este mes.")
+            else:
+                for cat, total in categorias:
+                    print(f"{cat:<15}: ${total:,.2f}")
+
+        elif opcion == "5":
             print("Cerrando Jarvis. Sistema fuera de línea.")
             break
             

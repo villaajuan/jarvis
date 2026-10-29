@@ -77,3 +77,28 @@ class GestorFinanciero:
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al calcular en BD: {e}")
             return 0.0, 0.0
+    def analizar_categorias(self, mes_filtro: str, tipo: str = 'gasto') -> list[tuple]:
+        """Agrupa y suma los montos por categoría extrayendo los corchetes en SQL."""
+        try:
+            conexion = sqlite3.connect(self.ruta)
+            cursor = conexion.cursor()
+            
+            # INSTR busca el corchete de cierre ']'. 
+            # SUBSTR recorta el texto desde el inicio hasta ese corchete.
+            # GROUP BY fusiona las categorías idénticas y SUM() suma la plata.
+            cursor.execute('''
+                SELECT SUBSTR(concepto, 1, INSTR(concepto, ']')) AS categoria, 
+                       SUM(monto) 
+                FROM transacciones 
+                WHERE tipo = ? AND fecha LIKE ? AND categoria != ''
+                GROUP BY categoria
+                ORDER BY SUM(monto) DESC
+            ''', (tipo, f"{mes_filtro}%"))
+            
+            resultados = cursor.fetchall()
+            conexion.close()
+            return resultados
+            
+        except sqlite3.Error as e:
+            print(f"[ERROR] Falla analítica en BD: {e}")
+            return [] 
