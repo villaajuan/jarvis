@@ -26,7 +26,7 @@ def ejecutar_consola():
 
         elif opcion == "2":
             print("\n--- NUEVO REGISTRO ---")
-            concepto = input("Concepto (ej. Transporte): ")
+            concepto = input("Concepto (ej. [Mercado] D1): ")
             try:
                 monto = float(input("Monto (sin puntos ni signos, ej. 15000): "))
                 tipo = input("Tipo (ingreso/gasto): ").strip().lower()
@@ -35,10 +35,23 @@ def ejecutar_consola():
                     print("[ERROR] El tipo debe ser 'ingreso' o 'gasto'.")
                     continue
 
-                nueva_t = Transaccion(concepto, monto, tipo)
-                # Inserción unitaria directa a la base de datos SQL
+                # NUEVO: Lógica para manejar fechas en el pasado
+                fecha_input = input("Fecha (YYYY-MM-DD) [Presiona Enter para hoy]: ").strip()
+                
+                if fecha_input:
+                    # Si el usuario escribe una fecha, le concatenamos la hora actual para mantener el formato SQL
+                    hora_actual = datetime.now().strftime("%H:%M:%S")
+                    fecha_final = f"{fecha_input} {hora_actual}"
+                else:
+                    # Si da Enter, enviamos None y la clase Transaccion pone la fecha y hora exacta
+                    fecha_final = None
+
+                # Le pasamos la fecha_final a tu objeto
+                nueva_t = Transaccion(concepto, monto, tipo, fecha=fecha_final)
+                
                 if gestor.registrar_transaccion(nueva_t):
                     print("[OK] Registro insertado exitosamente en SQLite.")
+                    
             except ValueError:
                 print("[ERROR] El monto debe ser un valor numérico válido.")
 
