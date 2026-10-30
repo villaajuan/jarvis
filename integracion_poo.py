@@ -60,7 +60,6 @@ class GestorFinanciero:
                 WHERE tipo = 'ingreso' AND fecha LIKE ?
             ''', (f"{mes_filtro}%",))
             
-            # fetchone() trae el primer registro. [0] extrae el número. 'or 0.0' evita errores si no hay datos.
             ingresos = cursor.fetchone()[0] or 0.0
 
             # 2. Suma todos los gastos del mes
@@ -77,6 +76,7 @@ class GestorFinanciero:
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al calcular en BD: {e}")
             return 0.0, 0.0
+
     def analizar_categorias(self, mes_filtro: str, tipo: str = 'gasto') -> list[tuple]:
         """Agrupa y suma los montos por categoría extrayendo los corchetes en SQL."""
         try:
@@ -101,4 +101,25 @@ class GestorFinanciero:
             
         except sqlite3.Error as e:
             print(f"[ERROR] Falla analítica en BD: {e}")
-            return [] 
+            return []
+
+    def calcular_deuda_tc(self, mes_filtro: str) -> float:
+        """Suma los gastos hechos con Tarjeta de Crédito para separar el pago."""
+        try:
+            conexion = sqlite3.connect(self.ruta)
+            cursor = conexion.cursor()
+            
+            # Sumamos todos los gastos que tengan [TC] en su concepto
+            cursor.execute('''
+                SELECT SUM(monto) FROM transacciones 
+                WHERE tipo = 'gasto' AND concepto LIKE '%[TC]%' AND fecha LIKE ?
+            ''', (f"{mes_filtro}%",))
+            
+            resultado = cursor.fetchone()[0]
+            conexion.close()
+            
+            return resultado if resultado else 0.0
+            
+        except sqlite3.Error as e:
+            print(f"[ERROR] Falla al calcular deuda TC: {e}")
+            return 0.0

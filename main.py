@@ -47,7 +47,17 @@ def ejecutar_consola():
                     # Si da Enter, enviamos None y la clase Transaccion pone la fecha y hora exacta
                     fecha_final = None
 
-                # Le pasamos la fecha_final a tu objeto
+                # --- NUEVA REGLA DE NEGOCIO: FACTOR ESFUERZO ---
+                if "[Ocio]" in concepto and tipo == "gasto" and monto >= 50000:
+                    print("\n[ALERTA JARVIS - FACTOR ESFUERZO]")
+                    print(f"⚠️  Atención: ${monto:,.2f} equivalen a un turno pesado de descargue en la planta.")
+                    confirmacion = input("¿Estás seguro de que deseas intercambiar esa energía física por este gasto? (s/n): ").strip().lower()
+                    
+                    if confirmacion != 's':
+                        print("[INFO] Transacción abortada. Excelente decisión, capital protegido.")
+                        continue  # Aborta y vuelve al menú principal
+
+                # Si no es de ocio, si es menor a 40k, o si el usuario dijo 's', procedemos a guardar:
                 nueva_t = Transaccion(concepto, monto, tipo, fecha=fecha_final)
                 
                 if gestor.registrar_transaccion(nueva_t):
@@ -65,12 +75,19 @@ def ejecutar_consola():
             
             ingresos, gastos = gestor.calcular_balance(mes_filtro)
             balance = ingresos - gastos
+            deuda_tc = gestor.calcular_deuda_tc(mes_filtro)
             
             print(f"\n--- REPORTE FINANCIERO DE {mes_filtro} ---")
             print(f"Total Ingresos: +${ingresos:,.2f}")
             print(f"Total Gastos:   -${gastos:,.2f}")
             print(f"BALANCE NETO:   ${balance:,.2f}")
-
+            
+            # --- NUEVA REGLA: GESTIÓN TÁCTICA NU ---
+            if deuda_tc > 0:
+                print(f"\n--- ALERTA TÁCTICA DE CRÉDITO ---")
+                print(f"Deuda acumulada en Nu [TC]: ${deuda_tc:,.2f}")
+                print(f"(Jarvis ya descontó este dinero de tu Balance Neto. Guárdalo para la cuota).")
+        
         elif opcion == "4":
             mes_actual = datetime.now().strftime("%Y-%m")
             mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
