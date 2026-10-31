@@ -7,109 +7,93 @@ def mostrar_menu() -> str:
     print("2. Registrar nueva transacción")
     print("3. Generar reporte mensual")
     print("4. Analizar gastos por categoría")
-    print("5. Salir")
-    return input("Selecciona una opción (1/2/3/4/5): ")
+    print("5. Exportar a Excel (CSV)")
+    print("6. Salir")
+    return input("Selecciona una opción (1/2/3/4/5/6): ")
 
-def ejecutar_consola():
+def main():
     gestor = GestorFinanciero()
-
+    print("Iniciando sistema Jarvis...")
+    
     while True:
-        opcion = mostrar_menu()
-
-        if opcion == "1":
-            transacciones = gestor.cargar_objetos()
-            if not transacciones:
-                print("\n[INFO] El registro está vacío.")
-            else:
-                print("\n--- HISTORIAL ---")
-                for t in transacciones:
-                    print(t.obtener_resumen())
-
-        elif opcion == "2":
-            print("\n--- NUEVO REGISTRO ---")
-            concepto = input("Concepto (ej. [Mercado] D1): ")
-            try:
-                monto = float(input("Monto (sin puntos ni signos, ej. 15000): "))
-                tipo = input("Tipo (ingreso/gasto): ").strip().lower()
-                
-                if tipo not in ["ingreso", "gasto"]:
-                    print("[ERROR] El tipo debe ser 'ingreso' o 'gasto'.")
-                    continue
-
-                # NUEVO: Lógica para manejar fechas en el pasado
-                fecha_input = input("Fecha (YYYY-MM-DD) [Presiona Enter para hoy]: ").strip()
-                
-                if fecha_input:
-                    # Si el usuario escribe una fecha, le concatenamos la hora actual para mantener el formato SQL
-                    hora_actual = datetime.now().strftime("%H:%M:%S")
-                    fecha_final = f"{fecha_input} {hora_actual}"
+        try:
+            opcion = mostrar_menu()
+            
+            if opcion == "1":
+                transacciones = gestor.cargar_objetos()
+                print("\n--- HISTORIAL DE TRANSACCIONES ---")
+                if not transacciones:
+                    print("No hay transacciones registradas.")
                 else:
-                    # Si da Enter, enviamos None y la clase Transaccion pone la fecha y hora exacta
-                    fecha_final = None
-
-                # --- NUEVA REGLA DE NEGOCIO: FACTOR ESFUERZO ---
-                if "[Ocio]" in concepto and tipo == "gasto" and monto >= 50000:
-                    print("\n[ALERTA JARVIS - FACTOR ESFUERZO]")
-                    print(f"⚠️  Atención: ${monto:,.2f} equivalen a un turno pesado de descargue en la planta.")
-                    confirmacion = input("¿Estás seguro de que deseas intercambiar esa energía física por este gasto? (s/n): ").strip().lower()
-                    
-                    if confirmacion != 's':
-                        print("[INFO] Transacción abortada. Excelente decisión, capital protegido.")
-                        continue  # Aborta y vuelve al menú principal
-
-                # Si no es de ocio, si es menor a 40k, o si el usuario dijo 's', procedemos a guardar:
-                nueva_t = Transaccion(concepto, monto, tipo, fecha=fecha_final)
+                    for t in transacciones:
+                        print(t.obtener_resumen())
+                        
+            elif opcion == "2":
+                print("\n--- REGISTRAR TRANSACCIÓN ---")
+                concepto = input("Concepto (ej. [Salario] Quincena): ")
+                monto = float(input("Monto (sin puntos ni comas): "))
+                tipo = input("Tipo (ingreso/gasto): ").lower()
+                fecha_input = input("Fecha (YYYY-MM-DD HH:MM:SS) o Enter para hoy: ")
+                
+                fecha = fecha_input if fecha_input.strip() else None
+                nueva_t = Transaccion(concepto, monto, tipo, fecha)
                 
                 if gestor.registrar_transaccion(nueva_t):
-                    print("[OK] Registro insertado exitosamente en SQLite.")
+                    print("[OK] Transacción guardada en la base de datos.")
                     
-            except ValueError:
-                print("[ERROR] El monto debe ser un valor numérico válido.")
-
-        elif opcion == "3":
-            mes_actual = datetime.now().strftime("%Y-%m")
-            mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
-            
-            if not mes_filtro:
-                mes_filtro = mes_actual
-            
-            ingresos, gastos = gestor.calcular_balance(mes_filtro)
-            balance = ingresos - gastos
-            deuda_tc = gestor.calcular_deuda_tc(mes_filtro)
-            
-            print(f"\n--- REPORTE FINANCIERO DE {mes_filtro} ---")
-            print(f"Total Ingresos: +${ingresos:,.2f}")
-            print(f"Total Gastos:   -${gastos:,.2f}")
-            print(f"BALANCE NETO:   ${balance:,.2f}")
-            
-            # --- NUEVA REGLA: GESTIÓN TÁCTICA NU ---
-            if deuda_tc > 0:
-                print(f"\n--- ALERTA TÁCTICA DE CRÉDITO ---")
-                print(f"Deuda acumulada en Nu [TC]: ${deuda_tc:,.2f}")
-                print(f"(Jarvis ya descontó este dinero de tu Balance Neto. Guárdalo para la cuota).")
-        
-        elif opcion == "4":
-            mes_actual = datetime.now().strftime("%Y-%m")
-            mes_filtro = input(f"Ingresa el mes a consultar (Enter para {mes_actual}): ")
-            
-            if not mes_filtro:
-                mes_filtro = mes_actual
+            elif opcion == "3":
+                mes = input("\nIngresa el mes a consultar (Enter para actual YYYY-MM): ")
+                if not mes.strip():
+                    mes = datetime.now().strftime("%Y-%m")
+                    
+                ingresos, gastos = gestor.calcular_balance(mes)
+                balance = ingresos - gastos
                 
-            print(f"\n--- ANÁLISIS DE GASTOS: {mes_filtro} ---")
-            categorias = gestor.analizar_categorias(mes_filtro, 'gasto')
-            
-            if not categorias:
-                print("No hay gastos registrados para analizar en este mes.")
-            else:
-                for cat, total in categorias:
-                    print(f"{cat:<15}: ${total:,.2f}")
+                print(f"\n--- REPORTE FINANCIERO DE {mes} ---")
+                print(f"Total Ingresos: +${ingresos:,.2f}")
+                print(f"Total Gastos:   -${gastos:,.2f}")
+                print(f"BALANCE NETO:   ${balance:,.2f}")
+                
+                # Alerta táctica de deuda
+                deuda_tc = gestor.calcular_deuda_tc(mes)
+                if deuda_tc > 0:
+                    print("\n--- ALERTA TÁCTICA DE CRÉDITO ---")
+                    print(f"Deuda acumulada en Nu [TC]: ${deuda_tc:,.2f}")
+                    print("(Jarvis ya descontó este dinero de tu Balance Neto. Guárdalo para la cuota).")
+                    
+            elif opcion == "4":
+                mes = input("\nIngresa el mes a consultar (Enter para actual YYYY-MM): ")
+                if not mes.strip():
+                    mes = datetime.now().strftime("%Y-%m")
+                    
+                print(f"\n--- ANÁLISIS DE GASTOS POR CATEGORÍA ({mes}) ---")
+                resultados = gestor.analizar_categorias(mes, 'gasto')
+                
+                if not resultados:
+                    print("No hay gastos registrados en este mes.")
+                else:
+                    for categoria, total in resultados:
+                        print(f"{categoria}: ${total:,.2f}")
 
-        elif opcion == "5":
-            print("Cerrando Jarvis. Sistema fuera de línea.")
-            break
-            
-        else:
-            print("[ERROR] Comando no reconocido.")
+            elif opcion == "5":
+                print("\nGenerando archivo Excel/CSV...")
+                if gestor.exportar_csv():
+                    print("[OK] Base de datos exportada con éxito.")
+                    print("Revisa la carpeta 'data'. Encontrarás 'reporte_jarvis.csv'.")
+                else:
+                    print("[ERROR] No se pudo exportar el archivo.")
+                    
+            elif opcion == "6":
+                print("Cerrando Jarvis. Sistema fuera de línea.")
+                break
+                
+            else:
+                print("[ERROR] Opción no válida. Intenta de nuevo.")
+                
+        except ValueError:
+            print("[ERROR] Ingresaste un valor inválido (asegúrate de no usar letras o signos en el monto).")
+        except Exception as e:
+            print(f"[ERROR INESPERADO] {e}")
 
 if __name__ == "__main__":
-    ejecutar_consola()
+    main()

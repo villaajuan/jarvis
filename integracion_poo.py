@@ -1,4 +1,5 @@
 import sqlite3
+import csv
 from datetime import datetime
 
 class Transaccion:
@@ -123,3 +124,25 @@ class GestorFinanciero:
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al calcular deuda TC: {e}")
             return 0.0
+
+    def exportar_csv(self) -> bool:
+        """Exporta la base de datos a un archivo Excel/CSV."""
+        try:
+            conexion = sqlite3.connect(self.ruta)
+            cursor = conexion.cursor()
+            # Seleccionamos todas las columnas de la tabla transacciones
+            cursor.execute("SELECT rowid, concepto, monto, tipo, fecha FROM transacciones")
+            filas = cursor.fetchall()
+            conexion.close()
+
+            # Abrimos/creamos el archivo en modo escritura ('w')
+            with open('data/reporte_jarvis.csv', 'w', newline='', encoding='utf-8') as archivo:
+                escritor = csv.writer(archivo)
+                # Escribimos la fila de los encabezados de la tabla
+                escritor.writerow(['ID', 'Concepto', 'Monto', 'Tipo', 'Fecha'])
+                # Escribimos todos los datos extraídos de SQL
+                escritor.writerows(filas)
+            return True
+        except Exception as e:
+            print(f"[ERROR] Al exportar a CSV: {e}")
+            return False
