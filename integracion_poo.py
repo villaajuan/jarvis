@@ -19,7 +19,6 @@ class GestorFinanciero:
         self.ruta = ruta_bd
 
     def registrar_transaccion(self, t: Transaccion) -> bool:
-        """Inserta una transacción incluyendo la cuenta de origen/destino."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
@@ -35,21 +34,18 @@ class GestorFinanciero:
             return False
 
     def cargar_objetos(self) -> list[Transaccion]:
-        """Extrae el historial incluyendo la cuenta."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
             cursor.execute("SELECT concepto, monto, tipo, cuenta, fecha FROM transacciones")
             filas = cursor.fetchall()
             conexion.close()
-            
             return [Transaccion(concepto=f[0], monto=f[1], tipo=f[2], cuenta=f[3], fecha=f[4]) for f in filas]
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al leer de BD: {e}")
             return []
     
     def calcular_balance(self, mes_filtro: str) -> tuple[float, float]:
-        """Calcula ingresos y gastos, ignorando las transferencias internas a prueba de fallos."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
@@ -73,11 +69,12 @@ class GestorFinanciero:
             return 0.0, 0.0
         
     def obtener_balances_cuentas(self) -> dict:
-        """Calcula exactamente cuánto dinero hay en CADA cuenta."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
             
+            # ¡CORRECCIÓN CRÍTICA! Aquí NO se pueden ignorar las transferencias, 
+            # de lo contrario el dinero nunca se mueve a Lulo, Nequi o Efectivo.
             cursor.execute("SELECT cuenta, SUM(monto) FROM transacciones WHERE tipo='ingreso' GROUP BY cuenta")
             ingresos = {row[0]: row[1] for row in cursor.fetchall()}
             
@@ -96,28 +93,71 @@ class GestorFinanciero:
             print(f"[ERROR] Falla al calcular saldos por cuenta: {e}")
             return {}
 
-    def obtener_estado_pasivos(self) -> dict:
-        """Consulta el estado actual de la Tarjeta Nu y sus cupos."""
+    def obtener_estado_pasivos_pro(self) -> dict:
+        """Calcula el estado financiero y los días exactos para el pago usando fechas reales."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
-            cursor.execute("SELECT nombre, cupo_total, deuda_actual FROM pasivos")
+            # Se intentan traer las columnas de fechas; si la tabla antigua no las tiene, atrapará el error.
+            cursor.execute("SELECT nombre, cupo_total, deuda_actual, dia_corte, dia_pago FROM pasivos")
             resultado = cursor.fetchone()
             conexion.close()
             
             if resultado:
-                nombre, cupo_total, deuda_actual = resultado
+                nombre, cupo_total, deuda_actual, dia_corte, dia_pago = resultado
                 cupo_disponible = cupo_total - deuda_actual
+                
+                hoy = datetime.now()
+                dia_actual = hoy.day
+                
+                if dia_actual <= dia_pago:
+                    dias_restantes = dia_pago - dia_actual
+                    estado_pago = f"Faltan {dias_restantes} días para el pago límite."
+                else:
+                    estado_pago = "⚠️ Fecha límite de pago vencida este mes. Verifica tu pago."
+                
                 return {
                     "nombre": nombre,
                     "cupo_total": cupo_total,
                     "deuda_actual": deuda_actual,
-                    "cupo_disponible": cupo_disponible
+                    "cupo_disponible": cupo_disponible,
+                    "dia_corte": dia_corte,
+                    "dia_pago": dia_pago,
+                    "estado_pago": estado_pago
                 }
+            return {}
+        except sqlite3.OperationalError:
+            # Fallback en caso de que la tabla de pasivos aún no haya sido migrada con las columnas de fechas
+            print("[ADVERTENCIA] La tabla 'pasivos' no tiene las columnas de fechas. Se requiere actualización de BD.")
             return {}
         except sqlite3.Error as e:
             print(f"[ERROR] Falla al consultar pasivos: {e}")
             return {}
+
+    def pagar_pasivo(self, monto_pago: float, cuenta_origen: str = "Bancolombia") -> bool:
+        """Registra el pago de la tarjeta descontando de la liquidez y reduciendo la deuda real."""
+        try:
+            conexion = sqlite3.connect(self.ruta)
+            cursor = conexion.cursor()
+            
+            fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute('''
+                INSERT INTO transacciones (concepto, monto, tipo, cuenta, fecha)
+                VALUES (?, ?, ?, ?, ?)
+            ''', ("[TC] Pago Cuota Nu", monto_pago, "gasto", cuenta_origen, fecha_actual))
+            
+            cursor.execute('''
+                UPDATE pasivos 
+                SET deuda_actual = deuda_actual - ? 
+                WHERE nombre LIKE '%Nu%'
+            ''', (monto_pago,))
+            
+            conexion.commit()
+            conexion.close()
+            return True
+        except sqlite3.Error as e:
+            print(f"[ERROR] Falla al procesar el pago del pasivo: {e}")
+            return False
 
     def analizar_categorias(self, mes_filtro: str, tipo: str = 'gasto') -> list[tuple]:
         try:
@@ -138,23 +178,7 @@ class GestorFinanciero:
             print(f"[ERROR] Falla analítica en BD: {e}")
             return []
 
-    def calcular_deuda_tc(self, mes_filtro: str) -> float:
-        try:
-            conexion = sqlite3.connect(self.ruta)
-            cursor = conexion.cursor()
-            cursor.execute('''
-                SELECT SUM(monto) FROM transacciones 
-                WHERE tipo = 'gasto' AND concepto LIKE '%[TC]%' AND fecha LIKE ?
-            ''', (f"{mes_filtro}%",))
-            resultado = cursor.fetchone()[0]
-            conexion.close()
-            return resultado if resultado else 0.0
-        except sqlite3.Error as e:
-            print(f"[ERROR] Falla al calcular deuda TC: {e}")
-            return 0.0
-
     def exportar_csv(self) -> bool:
-        """Exporta la base de datos incluyendo la nueva columna de cuenta."""
         try:
             conexion = sqlite3.connect(self.ruta)
             cursor = conexion.cursor()
