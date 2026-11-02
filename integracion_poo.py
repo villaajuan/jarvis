@@ -194,3 +194,30 @@ class GestorFinanciero:
         except Exception as e:
             print(f"[ERROR] Al exportar a CSV: {e}")
             return False
+
+    def simular_interes_lulo(self, saldo_inicial: float, meses: int, aporte_mensual: float = 0.0, incluir_prima: bool = False, valor_prima: float = 1500000.0) -> list:
+        """Proyecta el crecimiento del dinero con interés compuesto al 9.5% E.A., incorporando aportes y primas semestrales."""
+        tasa_ea = 0.095
+        tasa_mensual = (1 + tasa_ea)**(1/12) - 1
+        
+        proyeccion = []
+        saldo_actual = saldo_inicial
+        
+        for mes in range(1, meses + 1):
+            interes_ganado = saldo_actual * tasa_mensual
+            
+            # Sumar aporte mensual y la prima si el mes es múltiplo de 6 (junio, diciembre...)
+            aporte_total_mes = aporte_mensual
+            if incluir_prima and (mes % 6 == 0):
+                aporte_total_mes += valor_prima
+                
+            saldo_actual += interes_ganado + aporte_total_mes
+            
+            proyeccion.append({
+                "mes": mes,
+                "interes_ganado": interes_ganado,
+                "aporte": aporte_total_mes,
+                "saldo_final": saldo_actual
+            })
+            
+        return proyeccion
